@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  main-app:
+    image: main-app:latest
+    hostname: main-app
+    container_name: main-app
+    environment:
+      - HEADER_APP=http://localhost:4001
+      - CORE_APP=http://localhost:4002
+    ports:
+      - "4000:80"
+    depends_on:
+      - core-app
+      - header-app
+    restart: always
+
+  header-app:
+    image: header-app:latest
+    hostname: header-app
+    container_name: header-app
+    environment:
+      - CORE_APP=http://localhost:4002
+    ports:
+      - "4001:80"
+    depends_on:
+      - core-app
+    restart: always
+
+  core-app:
+    image: core-app:latest
+    hostname: core-app
+    container_name: core-app
+    environment:
+      - API_URL=http://localhost:80/api
+    ports:
+      - "4002:80"
+    restart: always
+
+  content-management-service:
+    image: contentmanagementservice-api:latest
+    hostname: content-management-service
+    container_name: contentmanagementservice-api
+    environment:
+      - RabbitMQ__Hostname=rabbitmq
+      - RabbitMQ__Port=5672
+      - Kafka__BootstrapServers=kafka-broker:29092
+    ports:
+      - "80:80"
+    depends_on:
+      - rabbitmq
+      - kafka-broker
+    restart: always
+
+  notification-management-service:
+    image: notificationmanagementservice-workerservice:latest
+    hostname: notificationmanagementservice-workerservice
+    container_name: notificationmanagementservice-workerservice
+    environment:
+      - RabbitMQ__Hostname=rabbitmq
+      - RabbitMQ__Port=5672
+    ports:
+      - "81:80"
+    depends_on:
+      - rabbitmq
+    restart: always
+
+  recommendation-management-service:
+    image: recommendationmanagementservice-workerservice:latest
+    hostname: recommendationmanagementservice-workerservice
+    container_name: recommendationmanagementservice-workerservice
+    environment:
+      - Kafka__BootstrapServers=kafka-broker:29092
+    ports:
+      - "82:80"
+    depends_on:
+      - kafka-broker
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:3.12.14-management
+    hostname: rabbitmq
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+
+  kafka-broker:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: kafka-broker
+    container_name: kafka-broker
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-broker:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-broker:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka-broker:29092,CONTROLLER://kafka-broker:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      # Replace CLUSTER_ID with a unique base64 UUID using "bin/kafka-storage.sh random-uuid" 
+      # See https://docs.confluent.io/kafka/operations-tools/kafka-tools.html#kafka-storage-sh
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
