@@ -33,6 +33,10 @@ services:
     container_name: core-app
     environment:
       - API_URL=http://localhost:80/api
+      - AUTH0_DOMAIN=dev-re5ucc1nn12lb5qo.us.auth0.com
+      - AUTH0_CLIENTID=7PsLF1tiowoy50Ru4EW4EiWwk3uG6ylE
+      - AUTH0_AUDIENCE=https://hello-world.example.com
+      - AUTH0_REDIRECT_URI=http://localhost:4000/callback
     ports:
       - "4002:80"
     restart: always
